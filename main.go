@@ -43,6 +43,11 @@ func main() {
 		panic(errors.New("Must provide POSTFACTO_TECH_RETRO_ID"))
 	}
 
+	retroPass, ok := os.LookupEnv("POSTFACTO_RETRO_PASSWORD")
+	if !ok {
+		panic(errors.New("Must provide POSTFACTO_RETRO_PASSWORD"))
+	}
+
 	c := &postfacto.RetroClient{
 		Host: postfactoAPI,
 		ID:   retroID,
@@ -52,6 +57,12 @@ func main() {
 		Host: postfactoAPI,
 		ID:   techRetroID,
 	}
+
+	token, err := c.Login(retroPass)
+	if err != nil {
+		panic(err)
+	}
+	c.Token = token
 
 	server := slackcommand.Server{
 		VerificationToken: vToken,
@@ -84,6 +95,10 @@ func (d *PostfactoSlackDelegate) Handle(r slackcommand.Command) (string, error) 
 	parts := strings.SplitN(r.Text, " ", 2)
 	if len(parts) < 2 {
 		return "", fmt.Errorf("must be in the form of '%s [happy/meh/sad/tech] [message]'", r.Command)
+	}
+
+	if r.ChannelID != "<SLACK CHANNEL ID>" {
+		return "", fmt.Errorf("Retro items must be logged from the CF Toronto pivots channel.")
 	}
 
 	c := parts[0]
